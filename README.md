@@ -10,6 +10,8 @@ com foco nos dados de tracking 360. Exemplo principal: final do Euro 2024.
 - `src/viz.py` — visualizações espaciais (freeze frames, mapa de pressão)
 - `app.py` — aplicação Streamlit
 
+## Arquitetura
+![Arquitetura da aplicação](arquitetura.png)
 
 ## Como correr
 
