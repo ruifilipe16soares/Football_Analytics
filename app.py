@@ -293,10 +293,12 @@ with tab_prog:
     buffer = cc1.slider("Largura do corredor (buffer)", 2.0, 10.0, 5.0, 0.5)
     min_prog = cc2.slider("Progressão mínima", 0.0, 20.0, 5.0, 1.0)
     ql2 = quebra(match_id, comp_id, season_id, buffer, min_prog)
+    st.markdown("#### Todos os passes que quebram linhas registados")
     st.caption(f"{len(ql2)} passes que quebram pelo menos 1 linha.")
     st.dataframe(bonito(ql2[["minute", "team_name", "player_name", "recipient", "n_quebrados"]]),
                  width="stretch", hide_index=True)
     if not ql2.empty:
+        st.markdown("#### Selecionar Freeze Frames de cada passe progressivo")
         rot = {f"{int(r.minute)}' · {r.player_name} → {r.recipient} "
                f"(quebra {int(r.n_quebrados)})": r.id for r in ql2.itertuples()}
         esc = st.selectbox("Ver o freeze frame de um passe", list(rot))
