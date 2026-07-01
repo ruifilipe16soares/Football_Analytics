@@ -13,7 +13,7 @@ com foco nos dados de tracking 360. Exemplo principal: final do Euro 2024.
 
 ## Como correr
 
-Depois de clonar o repositório, abrindo o Terminal na diretoria do Projeto, fazer sequencialmente os seguintes comandos:
+Depois de clonar o repositório, abrindo o Terminal na diretoria do Projeto, executar sequencialmente os seguintes comandos:
 
 **Windows**
 
