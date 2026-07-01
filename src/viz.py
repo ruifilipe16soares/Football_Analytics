@@ -19,7 +19,7 @@ from mplsoccer import Pitch
 # Cores por omissao (usadas quando nao se passa um dict `cores`)
 COR_COLEGAS = "#3b82f6"      # azul
 COR_ADVERSARIOS = "#ef4444"  # vermelho
-COR_ACTOR = "#fbbf24"        # dourado - anel que destaca quem executa
+COR_ACTOR = "#fbbf24"        # dourado  que destaca quem executa
 COR_BOLA = "#111111"
 COR_VISIVEL = "#22c55e"      # area visivel pelo tracking
 COR_QUEBRADOS = "#16a34a"    # anel dos adversarios quebrados
@@ -52,7 +52,7 @@ def _resolver_cores(jogo, event_id, cores):
         opp_team = fora
     elif actor_team == fora:
         opp_team = casa
-    else:                                  # fallback defensivo
+    else:                                  
         opp_team = fora if actor_team != fora else casa
 
     if cores:
@@ -70,15 +70,10 @@ def plotar_freeze(jogo, event_id, ax=None, mostrar_visivel=True,
     - jogadores coloridos pela equipa real (ver `cores`)
     - o executante (actor) com a cor da sua equipa e um anel dourado a destacar
     - guarda-redes com contorno preto reforcado
-    - area visivel pelo tracking sombreada (opcional)
-    - seta da acao para passes/conducoes (opcional)
+    - area visivel pelo tracking sombreada 
+    - seta da acao para passes/conducoes 
 
-    cores : dict opcional {nome_da_equipa: cor}. Ex.:
-            {"Spain": "#C8102E", "England": "#FFFFFF"}
-            Assim a Espanha fica sempre vermelha e a Inglaterra branca,
-            independentemente de quem executa o evento.
-
-    Devolve (fig, ax). Se ax for dado, desenha nesse eixo (util para grelhas).
+    Devolve (fig, ax). Se ax for dado, desenha nesse eixo, permitindo composição em grelhas.
     """
     frame = jogo.freeze_de(event_id)
     if frame.empty:
@@ -90,7 +85,7 @@ def plotar_freeze(jogo, event_id, ax=None, mostrar_visivel=True,
     cor_act, cor_adv, lbl_act, lbl_adv = _resolver_cores(jogo, event_id, cores)
 
     pitch = Pitch(pitch_type="statsbomb", line_color="#cfcfcf",
-                  pitch_color="#f7f7f7")
+                  pitch_color="#d2f8a6")
     if ax is None:
         fig, ax = pitch.draw(figsize=(11, 7.5))
     else:
@@ -193,7 +188,8 @@ def plotar_quebra_linhas(jogo, event_id, buffer=5.0, ax=None, titulo=None,
 
 
 def _eh_na(v):
-    """True se v for None ou NaN (pd.NA incluido)."""
+    """True se v for None ou NaN (pd.NA incluido). Usada antes de desenhar, para saltar
+    valores em falta (ex.: um passe sem coordenada de destino)."""
     if v is None:
         return True
     try:
@@ -231,7 +227,7 @@ def plotar_mapa_pressao(jogo, bins=(6, 4), cmap="Reds", titulo=None):
     (x=120), com escala de cor PARTILHADA para a comparacao ser honesta.
     x alto = pressao alta (no meio-campo adversario).
 
-    Usa os eventos Pressure. Devolve (fig, axs).
+    Usa os eventos Pressure do Data Events. Devolve (fig, axs).
     """
     press = jogo.por_tipo("Pressure")
     press = press[press["x"].notna()]
@@ -274,4 +270,54 @@ def plotar_mapa_pressao(jogo, bins=(6, 4), cmap="Reds", titulo=None):
                  fontsize=14, y=1.02)
     cbar = fig.colorbar(ultimo_pcm, ax=axs, shrink=0.6, pad=0.02)
     cbar.set_label("nº de pressões na zona", fontsize=9)
+    return fig, axs
+
+
+def _texto_contraste(hex_cor):
+    """Preto ou branco, conforme a luminancia da cor de fundo (para legibilidade)."""
+    h = str(hex_cor).lstrip("#")
+    if len(h) != 6:
+        return "#111111"
+    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    lum = 0.299 * r + 0.587 * g + 0.114 * b
+    return "#111111" if lum > 150 else "#ffffff"
+
+
+def plotar_onze_inicial(jogo, cores=None):
+    """
+    Onze inicial de cada equipa, posicionado pela POSICAO MEDIA real (media das
+    localizacoes dos seus eventos no jogo). Dois paineis, um por equipa, ambos
+    a atacar para a direita. Marcadores com o numero da camisola.
+
+    Devolve (fig, axs).
+    """
+    ev = jogo.events.dropna(subset=["x", "y"])
+    pos = ev.groupby("player_id")[["x", "y"]].mean()
+    titulares = jogo.lineups[jogo.lineups["titular"]]
+    casa, fora = jogo.equipas
+
+    pitch = Pitch(pitch_type="statsbomb", line_color="#8a8a8a",
+                  pitch_color="#f7f7f7", linewidth=1)
+    fig, axs = plt.subplots(1, 2, figsize=(16, 6))
+    for ax, team in zip(axs, [casa, fora]):
+        pitch.draw(ax=ax)
+        cor = (cores or {}).get(team, COR_COLEGAS)
+        txt = _texto_contraste(cor)
+        sub = titulares[titulares["team_name"] == team]
+        for _, jog in sub.iterrows():
+            pid = jog["player_id"]
+            if pid not in pos.index:
+                continue
+            x, y = float(pos.loc[pid, "x"]), float(pos.loc[pid, "y"])
+            pitch.scatter([x], [y], ax=ax, s=680, color=cor,
+                          edgecolors=EDGE, linewidth=1.2, zorder=3)
+            num = jog.get("jersey_number")
+            if num is not None and num == num:   # nao NaN
+                ax.text(x, y, str(int(num)), color=txt, ha="center", va="center",
+                        fontsize=9, weight="bold", zorder=4)
+        ax.annotate("", xy=(0.70, -0.05), xytext=(0.30, -0.05),
+                    xycoords="axes fraction",
+                    arrowprops=dict(arrowstyle="-|>", color="#555", lw=1.4))
+        ax.set_title(team, fontsize=13)
+    fig.suptitle("Onze inicial — posição média no jogo", fontsize=14, y=1.01)
     return fig, axs

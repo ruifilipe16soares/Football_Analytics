@@ -2,8 +2,8 @@
 """
 metricas.py — métricas de desempenho a partir dos dados do jogo.
 
-Camada de computação pura: recebe um objeto Jogo (do extrair.py) e devolve
-DataFrames / números. Não desenha nada (isso é o visualizar.py).
+Recebe um objeto Jogo (do extrair.py) e devolve
+DataFrames / números. (Não desenha nada, isso é o viz.py).
 
 Primeira métrica: passes que quebram linhas, usando os dados 360.
 """
@@ -18,18 +18,20 @@ import pandas as pd
 
 def adversarios_quebrados(opp_xy, x0, y0, x1, y1, buffer=5.0):
     """
-    Devolve uma máscara booleana dos adversários "quebrados" por um passe.
+    Devolve uma Lista de booleans (True/False) dos adversários "quebrados" (ultrapassados) por um passe.
+    O nº de elementos na lista depende do nº de adversários presentes no frame. Cada elemento indica se o adversário correspondente foi quebrado.
 
     Um adversário é quebrado se ficar DENTRO do corredor do passe:
       - projetado sobre a linha do passe entre o início e o fim (0 < t < 1), e
       - a uma distância perpendicular <= buffer dessa linha.
+    O buffer é quão longe da linha reta do passe um adversário ainda conta como "quebrado".
 
     Parâmetros
     ----------
     opp_xy : array (n, 2) com as posições (ff_x, ff_y) dos adversários no frame.
     x0, y0 : início do passe (localização do evento).
     x1, y1 : fim do passe (pass_end_x, pass_end_y).
-    buffer : meia-largura do corredor, em unidades de campo (campo é 120 x 80).
+    buffer : meia-largura do corredor, em unidades de campo (campo é 120 x 80). isto é, — quão longe da linha reta do passe um adversário ainda conta como "quebrado".
     """
     opp_xy = np.asarray(opp_xy, dtype=float)
     if opp_xy.size == 0:
@@ -65,11 +67,11 @@ def passes_quebra_linhas(jogo, buffer=5.0, min_progressao=5.0,
 
     Para cada um, conta quantos adversarios foram quebrados (ver
     adversarios_quebrados). Devolve um DataFrame ordenado do passe que mais
-    linhas quebra para o que menos, com os passes que quebram >= `minimo`.
+    linhas quebra para o que quebrou menos, com os passes que quebram >= `minimo`.
 
-    Nota metodologica: o freeze frame e do INSTANTE do passe; os adversarios
-    podem mover-se ate a bola chegar. A contagem e, portanto, sobre o cenario
-    no momento em que o passe e dado - que e o padrao para esta analise.
+    Nota metodologica: o freeze frame corresponde ao INSTANTE do passe; os adversarios
+    podem mover-se ate a bola chegar. A contagem corresponde, portanto, sobre o cenário
+    no momento em que o passe e dado - é o padrao para esta analise.
     """
     passes = jogo.por_tipo("Pass").copy()
 
@@ -131,12 +133,12 @@ def resumo_por_jogador(df_quebras):
 # Metrica: acoes sob pressao (lado ofensivo) + pressao aplicada (lado defensivo)
 # --------------------------------------------------------------------------- #
 
-def _mapa_pressores(jogo):
+def _mapa_pressure(jogo):
     """
     {id_da_acao_pressionada: [nomes de quem pressionou]}.
 
     Construido a partir dos eventos Pressure e do seu related_events - e a
-    peca que usa related_events para ligar o pressor a acao pressionada.
+    peça que usa related_events para ligar a acao pressionadora à acao pressionada. 
     """
     mapa = {}
     for _, p in jogo.por_tipo("Pressure").iterrows():
@@ -148,7 +150,7 @@ def _mapa_pressores(jogo):
 
 
 def _perdeu_posse(ev):
-    """Heuristica: esta acao resultou em perda de posse?"""
+    """Responde à questao: esta acao resultou em perda de posse?"""
     t = ev["type_name"]
     if t in ("Miscontrol", "Dispossessed"):
         return True
@@ -162,8 +164,7 @@ def _perdeu_posse(ev):
 def acoes_sob_pressao(jogo, tipos=None):
     """
     Todas as acoes realizadas sob pressao (under_pressure=True), enriquecidas
-    com o resultado (perdeu ou nao a posse) e quem aplicou a pressao (via
-    related_events -> evento Pressure adversario).
+    com o resultado (perdeu ou nao a posse) e quem aplicou a pressao (através do _mapa_pressure).
 
     tipos : lista opcional de tipos a manter (ex.: ["Pass"] para passes sob
             pressao). Por omissao inclui todas as acoes do portador.
@@ -177,7 +178,7 @@ def acoes_sob_pressao(jogo, tipos=None):
     if tipos:
         sob = sob[sob["type_name"].isin(tipos)]
 
-    mapa = _mapa_pressores(jogo)
+    mapa = _mapa_pressure(jogo)
     registos = []
     for _, e in sob.iterrows():
         registos.append({
@@ -194,7 +195,7 @@ def acoes_sob_pressao(jogo, tipos=None):
 
 def resumo_pressao_por_jogador(df_acoes):
     """
-    Lado ofensivo (compostura): por jogador, quantas acoes sob pressao fez e
+    Lado ofensivo: por jogador, quantas acoes sob pressao fez e
     que % delas manteve a posse. So conta acoes cujo resultado e mensuravel
     (as que nunca "perdem" por natureza inflacionariam a retencao).
     """

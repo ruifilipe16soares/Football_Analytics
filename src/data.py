@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-extrair.py — camada de extração e estruturação dos dados de um jogo StatsBomb.
+data.py — camada de extração e estruturação dos dados de um jogo StatsBomb.
 
-Lê os ficheiros de um jogo descarregados pelo filtrar_repositorio.py
+Lê os ficheiros de um jogo descarregados pelo extract.py
 (events, lineups, three-sixty, e a linha correspondente em matches) e
-devolve DataFrames organizados e prontos para a camada de métricas.
+devolve DataFrames organizados e prontos para a camada de métricas (metrics.py).
 
-Estrutura de pastas esperada (a que o filtrar_repositorio.py cria):
+Estrutura de pastas esperada (a que o extract.py cria):
 
     data_dir/
         matches/{competition_id}/{season_id}.json
@@ -74,7 +74,7 @@ def _split_xy(serie):
 # --------------------------------------------------------------------------- #
 
 def carregar_events(events_path):
-    """Eventos achatados, ordenados por index, com localizações extraídas."""
+    """Eventos desdobrados em colunas, ordenados por index, com localizações extraídas."""
     ev = pd.json_normalize(_ler_json(events_path), sep="_")
     ev = ev.sort_values("index").reset_index(drop=True)
 
@@ -109,6 +109,7 @@ def carregar_lineups(lineups_path):
                 "player_nickname": jog.get("player_nickname"),
                 "jersey_number": jog.get("jersey_number"),
                 "country": (jog.get("country") or {}).get("name"),
+                "posicao_id": posicoes[0]["position_id"] if posicoes else None,
                 "posicao_inicial": posicoes[0]["position"] if posicoes else None,
                 "titular": bool(posicoes) and posicoes[0].get("start_reason") == "Starting XI",
                 "positions": posicoes,   # lista completa (entradas/saídas), caso precises
@@ -119,10 +120,9 @@ def carregar_lineups(lineups_path):
 
 def carregar_freeze(threesixty_path):
     """
-    Dados 360 em forma longa: 1 linha por (evento, jogador).
+    Dados 360 em forma longa: 1 linha por cada par (evento, jogador).
 
-    Devolve (freeze_df, visible_area_dict), onde visible_area_dict mapeia
-    event_uuid -> polígono visível pelo tracking.
+    Devolve (freeze_df, visible_area_dict), onde visible_area_dict mapeia event_uuid -> polígono visível pelo tracking.
     """
     dados = _ler_json(threesixty_path)
     linhas = []
@@ -149,8 +149,8 @@ def carregar_freeze(threesixty_path):
 
 def _extrair_manager(df, col, prefixo):
     """
-    'managers' é uma LISTA de dicts (o json_normalize não achata listas),
-    por isso extraímos à mão o nome/id do primeiro treinador para colunas
+    'managers' é uma LISTA de dicts (o json_normalize não desdobra listas),
+    por isso extraímos por esta via o nome/id do primeiro treinador para colunas
     próprias, à semelhança do que fazemos com o location -> x/y.
     """
     if col not in df.columns:
@@ -205,7 +205,7 @@ def _encontrar_match(data_dir, match_id, competition_id, season_id):
 
 
 # --------------------------------------------------------------------------- #
-# Objeto que agrega o jogo + utilitários
+# Objeto que agrega o jogo com todos os seus dataFrames
 # --------------------------------------------------------------------------- #
 
 @dataclass
@@ -264,6 +264,20 @@ class Jogo:
         )
 
     # ---------------------- conveniências ----------------------
+    def substituicoes(self):
+        """Substituicoes do jogo: minuto, equipa, quem saiu, quem entrou, motivo."""
+        subs = self.por_tipo("Substitution")
+        if subs.empty:
+            return pd.DataFrame(columns=["minute", "team_name", "saiu", "entrou", "motivo"])
+        df = pd.DataFrame({
+            "minute": subs["minute"].astype(int),
+            "team_name": subs["team_name"],
+            "saiu": subs["player_name"],
+            "entrou": subs.get("substitution_replacement_name"),
+            "motivo": subs.get("substitution_outcome_name"),
+        })
+        return df.sort_values("minute").reset_index(drop=True)
+
     @property
     def equipas(self):
         m = self.match.iloc[0]
@@ -283,7 +297,7 @@ class Jogo:
 
 def carregar_jogo(data_dir, match_id, competition_id=None, season_id=None):
     """
-    Carrega um jogo completo a partir da estrutura criada pelo filtrar_repositorio.py.
+    Carrega um jogo completo a partir da estrutura criada pelo extract.py.
 
     Se competition_id/season_id forem dados, vai direto ao ficheiro de matches certo;
     caso contrário procura o match_id em todos os ficheiros de matches existentes.

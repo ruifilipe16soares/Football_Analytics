@@ -1,5 +1,7 @@
 .venv/
 __pycache__/
 *.pyc
+data_dir/
+outputs/
 .DS_Store
 .ipynb_checkpoints/

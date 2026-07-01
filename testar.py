@@ -2,7 +2,7 @@
 testar.py — exploração da estrutura dos DataFrames produzidos pelo extrair.py.
 
 Objetivo: ver o que saiu em cada tabela (events, lineups, match, freeze)
-antes de partir para as métricas. Corre com:  python testar.py
+antes de partir para as métricas. 
 """
 
 import pandas as pd
