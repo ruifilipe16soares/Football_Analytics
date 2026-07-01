@@ -85,18 +85,36 @@ def mostrar_fig(fig):
     plt.close(fig)
 
 
+RENOMEAR = {
+    "team_name": "Equipa", "player_name": "Jogador", "recipient": "Recetor",
+    "minute": "Minuto", "n_quebrados": "Adversários quebrados",
+    "passes_quebra_linha": "Passes que quebram linhas",
+    "total_adversarios_quebrados": "Adversários quebrados (total)",
+    "max_num_quebrados": "Máx. num só passe",
+    "acoes_sob_pressao": "Ações sob pressão", "perdas": "Perdas de posse",
+    "retencao_pct": "Retenção (%)", "pressoes_aplicadas": "Pressões aplicadas",
+}
+
+
+def bonito(df):
+    """Renomeia colunas técnicas para nomes naturais (apenas para exibição)."""
+    return df.rename(columns=RENOMEAR)
+
+
 # --------------------------------------------------------------------------- #
-# BARRA LATERAL — selecao do jogo e cores das equipas 
+# BARRA LATERAL — selecao (só analisa ao clicar no botao)
 # --------------------------------------------------------------------------- #
 st.sidebar.header("1 · Escolher jogo")
 try:
     comps = competicoes()
 except Exception:
-    st.error("Não foi possível contactar o repositório StatsBomb. Verifica a ligação à Internet.")
+    st.error("Não foi possível contactar o repositório StatsBomb. Verifica a Internet.")
     st.stop()
 
-if st.sidebar.checkbox("Só competições com dados 360", value=True) \
-        and "match_available_360" in comps.columns:
+st.sidebar.checkbox(
+    "Só competições com dados 360", value=True, disabled=True,
+    help="A análise assenta nos dados 360, por isso esta opção está sempre ativa.")
+if "match_available_360" in comps.columns:
     comps = comps[comps["match_available_360"].notna()]
 comps = comps.sort_values(["competition_name", "season_name"]).reset_index(drop=True)
 comp_labels = (comps["competition_name"] + " · " + comps["season_name"]).tolist()
@@ -174,7 +192,7 @@ st.markdown(
 )
 
 tab_geral, tab_concl, tab_prog, tab_press, tab_jog = st.tabs(
-    ["Visão geral", "Conclusões", "Progressão", "Pressão", "Por jogador"])
+    ["Visão geral", "Métricas desenvolvidas", "Progressão", "Pressão", "Métricas por jogador"])
 
 # ---- Visão geral ----
 with tab_geral:
@@ -223,7 +241,7 @@ with tab_geral:
 with tab_concl:
     ql = quebra(match_id, comp_id, season_id)
     rank_ql = resumo_por_jogador(ql)
-    st.subheader("1 · Progressão por passe (quebra de linhas)")
+    st.subheader("1 · Passes que quebram linhas")
     if not ql.empty:
         tot = ql.groupby("team_name")["n_quebrados"].sum()
         top_team = tot.idxmax()
@@ -232,17 +250,17 @@ with tab_concl:
         st.markdown(
             f"**{top_team}** liderou a progressão: ocupa **{top_share} dos 10** lugares "
             f"cimeiros do ranking, e **{tj['player_name']}** destaca-se com "
-            f"**{int(tj['total_adversarios_quebrados'])} adversários quebrados** "
-            f"em {int(tj['passes_quebra_linha'])} passes."
+            f"**{int(tj['total_adversarios_quebrados'])} adversários ultrapassados** "
+            f"em {int(tj['passes_quebra_linha'])} passes executados."
         )
         cc1, cc2 = st.columns([1, 1])
-        cc1.dataframe(rank_ql, width="stretch", hide_index=True)
+        cc1.dataframe(bonito(rank_ql), width="stretch", hide_index=True)
         with cc2:
             hero = ql[ql["team_name"] == top_team].iloc[0]
             fig, _ = plotar_quebra_linhas(jogo, hero["id"], cores=CORES)
             mostrar_fig(fig)
 
-    st.subheader("2 · Compostura sob pressão")
+    st.subheader("2 · Ações sob pressão")
     comp = compostura(match_id, comp_id, season_id)
     alto = comp[comp["acoes_sob_pressao"] >= MIN_ACOES]
     media = alto.groupby("team_name")["retencao_pct"].mean().round(0)
@@ -256,15 +274,18 @@ with tab_concl:
     fig, _ = plotar_mapa_pressao(jogo)
     mostrar_fig(fig)
 
+    # ------------------------------------------------------------------ #
+    # LEITURA TÁTICA (texto curado, escrito à mão; só para o jogo alvo).
+    # Edita livremente o texto abaixo para escrever a tua própria análise.
+    # ------------------------------------------------------------------ #
     if match_id == ALVO["match_id"]:
-        with st.expander("Leitura tática — final do Euro 2024"):
-            st.markdown(
-                "A Espanha construiu por dentro e libertou repetidamente os extremos "
-                "**Nico Williams** e **Lamine Yamal** entre linhas; os defesas e laterais "
-                "espanhóis foram a origem da progressão. A maior compostura sob pressão "
-                "ajuda a explicar o desfecho: os homens-chave ingleses cederam a posse com "
-                "mais frequência quando pressionados."
-            )
+        st.markdown("#### Insights Principais")
+        st.markdown(
+            "A Espanha foi claramente superior na progressão ofensiva, liderando as estatísticas de passes que quebram linhas, confirmando assim ser uma equipa muito forte a descobrir soluções em posse. É de destacar os jogadores Nico Williams e Dani Olmo, cujos passes foram os que mais quebraram linhas adversários em relação ao número de passes efetuados por eles. De destacar os dois defesas centrais estarem no topo da lista, confirmando que a Espanha é auma equipa que priveligia a saída em posse desde a 1ª fase de construção, com defesas muito confortáveis com bola no pé. "
+        )
+        st.markdown(
+            "As métricas das Ações sob pressão confirmam a principal valência desta equipa: o momento com bola. Os 89% de retenção da posse sob pressão confirmam a dificuldade do adversário em retirar a bola à Espanha, sendo a diferença de 16% para a Inglaterra um indicador claro da qualidade da Espanha com bola."
+        )
 
 # ---- Progressão ----
 with tab_prog:
@@ -273,7 +294,7 @@ with tab_prog:
     min_prog = cc2.slider("Progressão mínima", 0.0, 20.0, 5.0, 1.0)
     ql2 = quebra(match_id, comp_id, season_id, buffer, min_prog)
     st.caption(f"{len(ql2)} passes que quebram pelo menos 1 linha.")
-    st.dataframe(ql2[["minute", "team_name", "player_name", "recipient", "n_quebrados"]],
+    st.dataframe(bonito(ql2[["minute", "team_name", "player_name", "recipient", "n_quebrados"]]),
                  width="stretch", hide_index=True)
     if not ql2.empty:
         rot = {f"{int(r.minute)}' · {r.player_name} → {r.recipient} "
@@ -288,9 +309,9 @@ with tab_press:
     mostrar_fig(fig)
     cc1, cc2 = st.columns(2)
     cc1.markdown("**Compostura no passe sob pressão** (retenção %)")
-    cc1.dataframe(compostura(match_id, comp_id, season_id), width="stretch", hide_index=True)
+    cc1.dataframe(bonito(compostura(match_id, comp_id, season_id)), width="stretch", hide_index=True)
     cc2.markdown("**Pressões aplicadas por jogador**")
-    cc2.dataframe(pressao(match_id, comp_id, season_id), width="stretch", hide_index=True)
+    cc2.dataframe(bonito(pressao(match_id, comp_id, season_id)), width="stretch", hide_index=True)
 
 # ---- Por jogador ----
 with tab_jog:
@@ -302,7 +323,7 @@ with tab_jog:
     m1.metric("Passes que quebram linhas", len(mine))
     m2.metric("Adversários quebrados", int(mine["n_quebrados"].sum()) if not mine.empty else 0)
     if not mine.empty:
-        st.dataframe(mine[["minute", "recipient", "n_quebrados"]],
+        st.dataframe(bonito(mine[["minute", "recipient", "n_quebrados"]]),
                      width="stretch", hide_index=True)
         rot = {f"{int(r.minute)}' → {r.recipient} (quebra {int(r.n_quebrados)})": r.id
                for r in mine.itertuples()}
@@ -311,3 +332,33 @@ with tab_jog:
         mostrar_fig(fig)
     else:
         st.info("Este jogador não tem passes que quebram linhas registados.")
+
+    st.divider()
+    st.markdown("**Explorar ações com dados 360**")
+    com360 = set(jogo.freeze["event_uuid"])
+    acoes = jogo.events[
+        (jogo.events["player_name"] == jsel)
+        & (jogo.events["id"].isin(com360))
+        & (jogo.events["x"].notna())
+    ].copy()
+    if acoes.empty:
+        st.info("Este jogador não tem ações com dados 360.")
+    else:
+        tipos = sorted(acoes["type_name"].unique())
+        tsel = st.selectbox("Tipo de ação", tipos, key="tipo_acao_jog")
+        subset = acoes[acoes["type_name"] == tsel]
+
+        def _rot_acao(r):
+            base = f"{int(r.minute)}' · {r.type_name}"
+            rec = getattr(r, "pass_recipient_name", None)
+            if r.type_name == "Pass" and isinstance(rec, str):
+                base += f" → {rec}"
+            out = getattr(r, "shot_outcome_name", None)
+            if r.type_name == "Shot" and isinstance(out, str):
+                base += f" ({out})"
+            return base
+
+        rots = {_rot_acao(r): r.id for r in subset.itertuples()}
+        asel = st.selectbox("Ação", list(rots), key="acao_jog")
+        fig, _ = plotar_freeze(jogo, rots[asel], cores=CORES)
+        mostrar_fig(fig)
