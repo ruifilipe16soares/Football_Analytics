@@ -30,6 +30,9 @@ Depois de clonar o repositório, abrindo o Terminal na diretoria do Projeto, exe
 - `src/viz.py` — visualizações espaciais (freeze frames, mapa de pressão)
 - `app.py` — aplicação Streamlit
 
+## Exemplo de Utilização
+![Exemplo](exemplo.png)
+
 ## Arquitetura
 ![Arquitetura da aplicação](arquitetura.png)
 
