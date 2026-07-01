@@ -13,7 +13,7 @@ com foco nos dados de tracking 360. Exemplo principal: final do Euro 2024.
 
 ## Como correr
 
-**Windows **
+**Windows**
 
 ​```powershell
 python -m venv .venv
