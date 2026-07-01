@@ -1,0 +1,39 @@
+CAMPOS DO EVENTS DATA:
+
+index:
+ ordena os eventos todos, nem preciso de ir à timestamp.
+
+possession :
+ é um inteiro que agrupa os eventos em sequências de posse. Sempre que a posse muda de forma relevante, incrementa. 
+ É como segmentas o jogo em fases ("esta sequência foi do Union Berlin, dos eventos X ao Y").
+
+play_pattern :
+ é categórico e descreve como começou a fase de jogo atual: "From Kick Off", "From Throw In", "From Corner", "Regular Play", "From Counter"... 
+ É uma etiqueta sobre a sequência, não um critério de ordem.
+
+related_events :
+ é uma lista de UUIDs que liga um evento a outros com que está conectado — um passe ao seu ball receipt, um remate à ação do guarda-redes que 
+ o defende, uma pressão ao evento sobre o qual foi aplicada. É um grafo de ligações, não tempo.
+
+
+MAPEAR ISTO PARA AS MÉTRICAS:
+
+index ordena, possession segmenta, play_pattern rotula, related_events permite navegar entre eventos ligados.
+
+ E repara como isto mapeia diretamente nas métricas que tens em mente — o xT é baseado em sequências (possession), 
+  "ações sob pressão" liga-se via related_events (a pressão aponta para o evento pressionado),
+  "tempo de recuperação de posse" sai de cruzar possession/possession_team com os timestamps,
+  "remates pós-cruzamento" é navegar dentro de uma sequência. O related_events vai ser o teu melhor amigo nessa parte.
+
+
+IMPORTANTE:
+ nem todos os eventos têm 360, neste jogo são 3843 eventos para 3195 frames
+
+
+O QUE AINDA ME CONFUNDE:
+há duas formas úteis de representar o 360 e vais querer ambas:
+
+Forma "lookup": um dicionário event_uuid → freeze_frame, para quando só queres o frame de um evento específico.
+Forma longa (tidy): dás explode ao freeze_frame para que cada linha seja um par (evento, jogador) com colunas x, y, teammate, actor, keeper.
+ É esta que precisas para o trabalho espacial — calcular distâncias, contar defensores entre a bola e a baliza
+ (para passes que quebram linhas, para um xT enriquecido com 360), medir compactação, etc.

@@ -1,0 +1,23 @@
+
+
+Melhores Competições:
+
+EURO 2024:
+
+  "competition_id" : 55,
+  "season_id" : 282,
+
+CHAMPIONS LEAGUE 2004:
+
+  "competition_id" : 16,
+  "season_id" : 44,
+
+
+Jogos:
+
+"match_id" : 3943043,
+espanha-inglaterra Final Euro 2024
+
+
+
+
