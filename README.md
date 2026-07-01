@@ -24,11 +24,14 @@ Depois de clonar o repositório, abrindo o Terminal na diretoria do Projeto, exe
 ​
 
 ## Estrutura
+- `data_dir/` — dados do jogo descarregados da StatsBomb, na estrutura do repositório original (gerado pelo `extract.py`; não versionado)
+- `outputs/` — ficheiros gerados pela aplicação (visualizações exportadas)
 - `src/extract.py` — download seletivo de jogos do repositório StatsBomb
 - `src/data.py` — carregamento e estruturação em DataFrames
 - `src/metrics.py` — métricas (passes que quebram linhas com 360; ações sob pressão)
 - `src/viz.py` — visualizações espaciais (freeze frames, mapa de pressão)
 - `app.py` — aplicação Streamlit
+- `config.toml` — ficheiro de adição de propriedades à interface Streamlit
 
 ## Exemplo de Utilização
 ![Exemplo](exemplo.png)
