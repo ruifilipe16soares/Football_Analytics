@@ -13,13 +13,15 @@ com foco nos dados de tracking 360. Exemplo principal: final do Euro 2024.
 
 ## Como correr
 
+Depois de clonar o repositório, abrindo o Terminal na diretoria do Projeto, fazer sequencialmente os seguintes comandos:
+
 **Windows**
 
 - `python -m venv .venv`
 - `.venv\Scripts\Activate.ps1`
 - `pip install -r requirements.txt`
 - `streamlit run app.py`
-​```
+​
 
 **Linux / macOS**
 
@@ -27,4 +29,4 @@ com foco nos dados de tracking 360. Exemplo principal: final do Euro 2024.
 - `source .venv/bin/activate`
 - `pip install -r requirements.txt`
 - `streamlit run app.py`
-​```
+​
