@@ -15,18 +15,16 @@ com foco nos dados de tracking 360. Exemplo principal: final do Euro 2024.
 
 **Windows**
 
-​```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-streamlit run app.py
+- `python -m venv .venv`
+- `.venv\Scripts\Activate.ps1`
+- `pip install -r requirements.txt`
+- `streamlit run app.py`
 ​```
 
 **Linux / macOS**
 
-​```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-streamlit run app.py
+- `python3 -m venv .venv`
+- `source .venv/bin/activate`
+- `pip install -r requirements.txt`
+- `streamlit run app.py`
 ​```
