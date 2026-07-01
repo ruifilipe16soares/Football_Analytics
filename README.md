@@ -16,6 +16,7 @@ com foco nos dados de tracking 360. Exemplo principal: final do Euro 2024.
 **Windows**
 
 ​```powershell
+
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
