@@ -9,10 +9,24 @@ com foco nos dados de tracking 360. Exemplo principal: final do Euro 2024.
 - `src/metrics.py` — métricas (passes que quebram linhas com 360; ações sob pressão)
 - `src/viz.py` — visualizações espaciais (freeze frames, mapa de pressão)
 - `app.py` — aplicação Streamlit
-- `testar.py` — script de exploração
+
 
 ## Como correr
+
+**Windows **
+
+​```powershell
 python -m venv .venv
-.venv\Scripts\activate        # Windows
+.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 streamlit run app.py
+​```
+
+**Linux / macOS**
+
+​```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+streamlit run app.py
+​```
